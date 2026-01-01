@@ -1,20 +1,28 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/drive/1HkHuCOelVjCkFfxlzCul4V9zNRXGNI0B
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Thread
+A local-first wardrobe app for organizing clothes and building outfits.
+Thread lets you store photos of your clothing on your device, mix and match pieces visually, and generate random outfits with optional layers like outerwear and accessories. Everything is saved locally — no accounts, no cloud dependency.
+Screenshots
+(Replace these with real screenshots once available)
+[ Splash Screen Placeholder ]
+[ Closet View Placeholder ]
+[ Outfit Builder Placeholder ]
+[ Random Outfit Generator Placeholder ]
+Features
+Save individual clothing items with photos
+Categorize items (tops, bottoms, shoes, outerwear, accessories)
+Build outfits using a visual canvas
+Random outfit generator
+Toggle outerwear and accessories on/off when generating outfits
+All data stored locally on the device
+Offline by default
+Tech Stack
+TypeScript
+React
+Vite
+Local storage / local database (no backend)
+Mobile-first UI design
+Project Goals
+Keep user data private and on-device
+Make outfit creation fast and visual
+Avoid unnecessary complexity (accounts, syncing, feeds)
+Serve as a foundation for a future mobile app (iOS & Android)
