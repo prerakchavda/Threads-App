@@ -1,0 +1,7 @@
+{
+  "name": "Closet Canvas",
+  "description": "An offline-first, visual wardrobe manager and outfit builder designed for privacy and speed.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
