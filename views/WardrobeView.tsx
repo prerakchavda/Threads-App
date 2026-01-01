@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { ClothingItem, Category } from '../types';
 import { db } from '../db';
-import { Camera, Image as ImageIcon, X, Loader2, Trash2, Plus, Shirt, Wand2, Check, Tag } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, Loader2, Trash2, Plus, Shirt, Wand2, Check, Tag, Edit2, Eraser } from 'lucide-react';
 import { analyzeClothingImage, removeBackgroundAI } from '../services/gemini';
 import ImageRefiner from '../components/ImageRefiner';
 
@@ -18,8 +18,9 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
-  // Manual Entry States
+  // Edit/Add Meta States
   const [showManualForm, setShowManualForm] = useState(false);
+  const [activeItemId, setActiveItemId] = useState<string | null>(null); // null means adding new
   const [tempImage, setTempImage] = useState<string | null>(null);
   const [manualCategory, setManualCategory] = useState<Category>('Top');
   const [manualSubcategory, setManualSubcategory] = useState('');
@@ -57,22 +58,18 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
     setEditingImage(null);
     setTempImage(finalImage);
 
-    if (useAI) {
+    // Only auto-analyze if adding NEW and AI is on
+    if (!activeItemId && useAI) {
       setLoading(true);
       const analysis = await analyzeClothingImage(finalImage);
       if (analysis) {
         setManualCategory(analysis.category as Category);
         setManualSubcategory(analysis.subcategory);
         setManualTags(analysis.tags || []);
-        setShowManualForm(true);
-        setLoading(false);
-      } else {
-        setShowManualForm(true);
-        setLoading(false);
       }
-    } else {
-      setShowManualForm(true);
+      setLoading(false);
     }
+    setShowManualForm(true);
   };
 
   const addTag = () => {
@@ -86,25 +83,52 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
     setManualTags(manualTags.filter(t => t !== tagToRemove));
   };
 
-  const saveNewItem = (img: string, cat: Category, sub: string, tags: string[] = []) => {
-    const newItem: ClothingItem = {
-      id: crypto.randomUUID(),
-      image: img,
-      category: cat,
-      subcategory: sub || 'Unnamed Piece',
-      colors: [],
-      tags,
-      createdAt: Date.now(),
-    };
+  const handleSave = () => {
+    if (!tempImage) return;
 
-    db.saveItem(newItem);
+    if (activeItemId) {
+      // Update existing
+      const updatedItem: ClothingItem = {
+        id: activeItemId,
+        image: tempImage,
+        category: manualCategory,
+        subcategory: manualSubcategory || 'Unnamed Piece',
+        colors: [],
+        tags: manualTags,
+        createdAt: Date.now(), // update timestamp or keep old?
+      };
+      db.updateItem(updatedItem);
+    } else {
+      // Create new
+      const newItem: ClothingItem = {
+        id: crypto.randomUUID(),
+        image: tempImage,
+        category: manualCategory,
+        subcategory: manualSubcategory || 'Unnamed Piece',
+        colors: [],
+        tags: manualTags,
+        createdAt: Date.now(),
+      };
+      db.saveItem(newItem);
+    }
+
     onRefresh();
     resetState();
+  };
+
+  const startEdit = (item: ClothingItem) => {
+    setActiveItemId(item.id);
+    setTempImage(item.image);
+    setManualCategory(item.category);
+    setManualSubcategory(item.subcategory);
+    setManualTags(item.tags);
+    setShowManualForm(true);
   };
 
   const resetState = () => {
     setIsAdding(false);
     setShowManualForm(false);
+    setActiveItemId(null);
     setTempImage(null);
     setManualSubcategory('');
     setManualCategory('Top');
@@ -132,9 +156,21 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
       {showManualForm && tempImage && (
         <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 shrink-0">Item Details</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-4 shrink-0">
+              {activeItemId ? 'Edit Item' : 'New Item Details'}
+            </h3>
             
             <div className="flex flex-col gap-4 overflow-y-auto no-scrollbar pr-1">
+              <div className="relative group aspect-[4/5] bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden mb-2">
+                <img src={tempImage} className="w-full h-full object-contain" alt="item preview" />
+                <button 
+                  onClick={() => setEditingImage(tempImage)}
+                  className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-md p-2 rounded-xl text-indigo-600 shadow-lg border border-indigo-100 flex items-center gap-2 text-xs font-bold active:scale-95 transition-transform"
+                >
+                  <Eraser size={14} /> Refine Cutout
+                </button>
+              </div>
+
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Category</label>
                 <select 
@@ -147,7 +183,7 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Subcategory</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Item Name</label>
                 <input 
                   type="text"
                   placeholder="e.g. Vintage Denim, White Tee..."
@@ -186,7 +222,7 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
             <div className="flex gap-3 mt-6 shrink-0">
               <button onClick={resetState} className="flex-1 py-3 text-gray-400 font-bold hover:text-gray-600 transition-colors">Cancel</button>
               <button 
-                onClick={() => saveNewItem(tempImage, manualCategory, manualSubcategory, manualTags)}
+                onClick={handleSave}
                 className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 active:scale-95 transition-all"
               >
                 <Check size={18} /> Save
@@ -265,6 +301,13 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
         </button>
       )}
 
+      {loading && (
+        <div className="flex flex-col items-center gap-3 py-10">
+          <Loader2 className="animate-spin text-indigo-600" size={32} />
+          <p className="text-sm text-gray-500 font-medium text-center">Processing clothing item...</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         {filteredItems.map(item => (
           <div key={item.id} className="group relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
@@ -280,18 +323,26 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
                 ))}
               </div>
             </div>
-            <button 
-              onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-              className="absolute top-2 right-2 p-1.5 bg-red-50/80 backdrop-blur-sm text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
-            >
-              <Trash2 size={14} />
-            </button>
+            <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button 
+                onClick={(e) => { e.stopPropagation(); startEdit(item); }}
+                className="p-2 bg-white/80 backdrop-blur-sm text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors border border-indigo-100"
+              >
+                <Edit2 size={14} />
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
+                className="p-2 bg-red-50/80 backdrop-blur-sm text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors border border-red-100"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           </div>
         ))}
         {filteredItems.length === 0 && !loading && (
           <div className="col-span-2 text-center py-20">
             <Shirt size={48} className="mx-auto text-gray-200 mb-4" />
-            <p className="text-gray-400 font-medium">No items found.</p>
+            <p className="text-gray-400 font-medium">Your closet is empty.</p>
           </div>
         )}
       </div>

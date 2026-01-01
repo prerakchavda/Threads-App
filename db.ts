@@ -14,6 +14,14 @@ export const db = {
     items.push(item);
     localStorage.setItem(CLOTHING_KEY, JSON.stringify(items));
   },
+  updateItem: (updatedItem: ClothingItem) => {
+    const items = db.getItems();
+    const index = items.findIndex(i => i.id === updatedItem.id);
+    if (index !== -1) {
+      items[index] = updatedItem;
+      localStorage.setItem(CLOTHING_KEY, JSON.stringify(items));
+    }
+  },
   deleteItem: (id: string) => {
     const items = db.getItems().filter(i => i.id !== id);
     localStorage.setItem(CLOTHING_KEY, JSON.stringify(items));

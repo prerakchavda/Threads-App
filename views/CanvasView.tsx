@@ -39,8 +39,13 @@ const CanvasView: React.FC<CanvasViewProps> = ({ items, initialOutfit, onSave })
     const shoes = items.filter(i => i.category === 'Shoes');
     const accessories = items.filter(i => i.category === 'Accessory');
 
-    if (tops.length === 0 || bottoms.length === 0 || shoes.length === 0) {
-      alert("You need at least 1 Top, 1 Bottom, and 1 pair of Shoes in your closet to use the randomizer!");
+    const missing = [];
+    if (tops.length === 0) missing.push('Tops');
+    if (bottoms.length === 0) missing.push('Bottoms');
+    if (shoes.length === 0) missing.push('Shoes');
+
+    if (missing.length > 0) {
+      alert(`Randomizer requires at least one item in each core category. Please add: ${missing.join(', ')}.`);
       return;
     }
 
@@ -65,7 +70,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({ items, initialOutfit, onSave })
     }
 
     setCanvasItems(newSet);
-    setOutfitName(`Random Fit ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`);
+    // Removed auto-naming here to let user decide on save
   };
 
   const updateItem = (index: number, changes: Partial<OutfitItem>) => {
@@ -88,6 +93,11 @@ const CanvasView: React.FC<CanvasViewProps> = ({ items, initialOutfit, onSave })
   };
 
   const handleSave = () => {
+    if (canvasItems.length === 0) {
+      alert("Add some items to your canvas before saving!");
+      return;
+    }
+    
     const outfit: Outfit = {
       id: initialOutfit?.id || crypto.randomUUID(),
       name: outfitName || `Outfit ${new Date().toLocaleDateString()}`,
@@ -133,7 +143,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({ items, initialOutfit, onSave })
 
   return (
     <div className="h-full flex flex-col relative bg-gray-100 overflow-hidden">
-      <div className="p-3 bg-white border-b border-gray-200 flex justify-between items-center z-10 shrink-0">
+      <div className="p-3 bg-white border-b border-gray-100 flex justify-between items-center z-10 shrink-0">
         <div className="flex items-center gap-2">
            <input 
             type="text" 
@@ -205,7 +215,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({ items, initialOutfit, onSave })
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 pointer-events-none p-8 text-center">
             <Sparkles size={64} strokeWidth={1} className="mb-4 opacity-30 text-indigo-600" />
             <p className="text-lg font-bold text-gray-500">Your Canvas awaits</p>
-            <p className="text-sm max-w-[200px]">Drag items from the drawer or hit the dice for a random fit!</p>
+            <p className="text-sm max-w-[200px]">Pull items from the drawer or hit the dice for a random fit! (Needs Top, Bottom, and Shoes)</p>
           </div>
         )}
       </div>
