@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ClothingItem, Outfit, OutfitItem } from '../types';
 import { db } from '../db';
-// Added missing Tag import
 import { Save, RefreshCw, Layers, Plus, Minus, RotateCw, Trash2, ChevronUp, Shirt, Dices, Sparkles, Tag } from 'lucide-react';
 
 interface CanvasViewProps {
@@ -45,16 +44,17 @@ const CanvasView: React.FC<CanvasViewProps> = ({ items, initialOutfit, onSave })
     if (shoes.length === 0) missing.push('Shoes');
 
     if (missing.length > 0) {
-      alert(`Randomizer requires at least one item in each core category. Please add: ${missing.join(', ')}.`);
+      alert(`The Magic Randomizer requires at least one item from each core category to create a complete look. Missing: ${missing.join(', ')}.`);
       return;
     }
 
-    setCanvasItems([]); // Clear current
+    setCanvasItems([]); // Clear current canvas for a fresh start
     
     const randomTop = tops[Math.floor(Math.random() * tops.length)];
     const randomBottom = bottoms[Math.floor(Math.random() * bottoms.length)];
     const randomShoes = shoes[Math.floor(Math.random() * shoes.length)];
 
+    // Core layout positions (Centered vertically)
     const newSet: OutfitItem[] = [
       { clothingId: randomTop.id, x: 100, y: 50, scale: 1, rotate: 0, zIndex: 10 },
       { clothingId: randomBottom.id, x: 100, y: 220, scale: 1, rotate: 0, zIndex: 5 },
@@ -62,15 +62,43 @@ const CanvasView: React.FC<CanvasViewProps> = ({ items, initialOutfit, onSave })
     ];
 
     if (includeAccessories && accessories.length > 0) {
+      // Defined non-overlapping side slots for accessories
+      const accessorySlots = [
+        { x: 10, y: 100 },   // Mid-Left
+        { x: 260, y: 120 },  // Mid-Right
+        { x: 15, y: 320 },   // Lower-Left
+        { x: 270, y: 350 },  // Lower-Right
+      ];
+      
+      // Shuffle slots
+      const shuffledSlots = [...accessorySlots].sort(() => Math.random() - 0.5);
+      
       const count = Math.min(2, accessories.length);
+      const usedAccIds = new Set();
+
       for(let i=0; i<count; i++) {
-        const acc = accessories[Math.floor(Math.random() * accessories.length)];
-        newSet.push({ clothingId: acc.id, x: 20 + (i*200), y: 100, scale: 0.6, rotate: 0, zIndex: 15 });
+        // Try to get a unique accessory
+        let acc = accessories[Math.floor(Math.random() * accessories.length)];
+        if (usedAccIds.has(acc.id) && accessories.length > 1) {
+           acc = accessories.find(a => !usedAccIds.has(a.id)) || acc;
+        }
+        
+        usedAccIds.add(acc.id);
+        const slot = shuffledSlots[i];
+        
+        newSet.push({ 
+          clothingId: acc.id, 
+          x: slot.x, 
+          y: slot.y, 
+          scale: 0.6, 
+          rotate: (Math.random() * 20) - 10, // Subtle random tilt
+          zIndex: 15 
+        });
       }
     }
 
     setCanvasItems(newSet);
-    // Removed auto-naming here to let user decide on save
+    setSelectedId(null);
   };
 
   const updateItem = (index: number, changes: Partial<OutfitItem>) => {
@@ -275,7 +303,7 @@ const CanvasView: React.FC<CanvasViewProps> = ({ items, initialOutfit, onSave })
            <div className="flex items-center justify-between bg-gray-50 p-3 rounded-2xl">
               <div className="flex items-center gap-2">
                 <Tag size={16} className="text-indigo-600" />
-                <span className="text-xs font-bold text-gray-700">Randomizer Accessories</span>
+                <span className="text-xs font-bold text-gray-700">Include Accessories</span>
               </div>
               <button 
                 onClick={() => setIncludeAccessories(!includeAccessories)}

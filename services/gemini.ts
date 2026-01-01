@@ -50,8 +50,7 @@ export async function analyzeClothingImage(base64Image: string) {
 }
 
 /**
- * Attempts to remove background using Gemini 2.5 Flash Image.
- * Note: While the model generates images, we prompt it to isolate the subject.
+ * Attempts to remove background using Gemini 2.5 Flash Image with enhanced detail instructions.
  */
 export async function removeBackgroundAI(base64Image: string): Promise<string | null> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -68,7 +67,7 @@ export async function removeBackgroundAI(base64Image: string): Promise<string | 
             },
           },
           {
-            text: 'Isolate the clothing item in this image. Remove the entire background and return the clothing item centered on a solid, pure black background for easy masking.',
+            text: 'Extract the clothing item from this image with extreme precision. Preserve all fine details, textures, and edges (especially lace, fringes, or complex patterns). Remove the background entirely and replace it with a solid, pure black (#000000) background. Ensure the subject is centered and the edges are clean.',
           },
         ],
       },
