@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { ClothingItem, Category } from '../types';
 import { db } from '../db';
-import { Camera, Image as ImageIcon, X, Loader2, Trash2, Plus, Shirt, Wand2, Check, Tag, Edit2, Eraser } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, Loader2, Trash2, Plus, Shirt, Wand2, Check, Edit2, Eraser, ChevronRight } from 'lucide-react';
 import { analyzeClothingImage, removeBackgroundAI } from '../services/gemini';
 import ImageRefiner from '../components/ImageRefiner';
 
@@ -18,9 +18,8 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
-  // Edit/Add Meta States
   const [showManualForm, setShowManualForm] = useState(false);
-  const [activeItemId, setActiveItemId] = useState<string | null>(null); // null means adding new
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [tempImage, setTempImage] = useState<string | null>(null);
   const [manualCategory, setManualCategory] = useState<Category>('Top');
   const [manualSubcategory, setManualSubcategory] = useState('');
@@ -39,10 +38,10 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
     if (!file) return;
 
     setLoading(true);
+    setIsAdding(false);
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
-      
       if (useAI) {
         const aiProcessed = await removeBackgroundAI(base64);
         setEditingImage(aiProcessed || base64);
@@ -57,8 +56,6 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
   const handleRefinementComplete = async (finalImage: string) => {
     setEditingImage(null);
     setTempImage(finalImage);
-
-    // Only auto-analyze if adding NEW and AI is on
     if (!activeItemId && useAI) {
       setLoading(true);
       const analysis = await analyzeClothingImage(finalImage);
@@ -72,79 +69,37 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
     setShowManualForm(true);
   };
 
-  const addTag = () => {
-    if (tagInput.trim() && !manualTags.includes(tagInput.trim())) {
-      setManualTags([...manualTags, tagInput.trim()]);
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setManualTags(manualTags.filter(t => t !== tagToRemove));
-  };
-
   const handleSave = () => {
     if (!tempImage) return;
-
+    const itemData = {
+      image: tempImage,
+      category: manualCategory,
+      subcategory: manualSubcategory || 'New Piece',
+      colors: [],
+      tags: manualTags,
+      createdAt: Date.now(),
+    };
     if (activeItemId) {
-      // Update existing
-      const updatedItem: ClothingItem = {
-        id: activeItemId,
-        image: tempImage,
-        category: manualCategory,
-        subcategory: manualSubcategory || 'Unnamed Piece',
-        colors: [],
-        tags: manualTags,
-        createdAt: Date.now(), // update timestamp or keep old?
-      };
-      db.updateItem(updatedItem);
+      db.updateItem({ ...itemData, id: activeItemId });
     } else {
-      // Create new
-      const newItem: ClothingItem = {
-        id: crypto.randomUUID(),
-        image: tempImage,
-        category: manualCategory,
-        subcategory: manualSubcategory || 'Unnamed Piece',
-        colors: [],
-        tags: manualTags,
-        createdAt: Date.now(),
-      };
-      db.saveItem(newItem);
+      db.saveItem({ ...itemData, id: crypto.randomUUID() });
     }
-
     onRefresh();
     resetState();
   };
 
-  const startEdit = (item: ClothingItem) => {
-    setActiveItemId(item.id);
-    setTempImage(item.image);
-    setManualCategory(item.category);
-    setManualSubcategory(item.subcategory);
-    setManualTags(item.tags);
-    setShowManualForm(true);
-  };
-
   const resetState = () => {
-    setIsAdding(false);
     setShowManualForm(false);
     setActiveItemId(null);
     setTempImage(null);
     setManualSubcategory('');
     setManualCategory('Top');
     setManualTags([]);
-    setTagInput('');
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('Delete this item? It will be removed from all outfits.')) {
-      db.deleteItem(id);
-      onRefresh();
-    }
+    setIsAdding(false);
   };
 
   return (
-    <div className="p-4 flex flex-col gap-6">
+    <div className="h-full flex flex-col bg-[#F2F2F7]">
       {editingImage && (
         <ImageRefiner 
           imageSrc={editingImage} 
@@ -153,201 +108,197 @@ const WardrobeView: React.FC<WardrobeViewProps> = ({ items, onRefresh }) => {
         />
       )}
 
-      {showManualForm && tempImage && (
-        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 shrink-0">
-              {activeItemId ? 'Edit Item' : 'New Item Details'}
-            </h3>
-            
-            <div className="flex flex-col gap-4 overflow-y-auto no-scrollbar pr-1">
-              <div className="relative group aspect-[4/5] bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden mb-2">
-                <img src={tempImage} className="w-full h-full object-contain" alt="item preview" />
-                <button 
-                  onClick={() => setEditingImage(tempImage)}
-                  className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-md p-2 rounded-xl text-indigo-600 shadow-lg border border-indigo-100 flex items-center gap-2 text-xs font-bold active:scale-95 transition-transform"
-                >
-                  <Eraser size={14} /> Refine Cutout
-                </button>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Category</label>
-                <select 
-                  value={manualCategory}
-                  onChange={(e) => setManualCategory(e.target.value as Category)}
-                  className="w-full bg-gray-50 border border-gray-100 p-3 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                >
-                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Item Name</label>
-                <input 
-                  type="text"
-                  placeholder="e.g. Vintage Denim, White Tee..."
-                  value={manualSubcategory}
-                  onChange={(e) => setManualSubcategory(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-100 p-3 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tags</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {manualTags.map(tag => (
-                    <span key={tag} className="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-indigo-100">
-                      {tag}
-                      <button onClick={() => removeTag(tag)} className="hover:text-red-500"><X size={10} /></button>
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input 
-                    type="text"
-                    placeholder="Add tag..."
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addTag()}
-                    className="flex-1 bg-gray-50 border border-gray-100 p-3 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                  <button onClick={addTag} className="bg-indigo-100 text-indigo-600 p-3 rounded-xl hover:bg-indigo-200 transition-colors">
-                    <Plus size={18} />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6 shrink-0">
-              <button onClick={resetState} className="flex-1 py-3 text-gray-400 font-bold hover:text-gray-600 transition-colors">Cancel</button>
-              <button 
-                onClick={handleSave}
-                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 active:scale-95 transition-all"
-              >
-                <Check size={18} /> Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-        <button 
-          onClick={() => setSelectedCategory('All')}
-          className={`px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${selectedCategory === 'All' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200'}`}
-        >
-          All
-        </button>
-        {categories.map(cat => (
+      {/* Header Area */}
+      <header className="px-5 pt-safe bg-[#F2F2F7]">
+        <div className="flex justify-between items-center py-4">
+          <h1 className="text-3xl font-bold tracking-tight text-black">Closet</h1>
           <button 
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${selectedCategory === cat ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200'}`}
+            onClick={() => setIsAdding(true)}
+            className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center active:scale-90 transition-transform"
           >
-            {cat}
+            <Plus size={20} />
           </button>
-        ))}
-      </div>
-
-      {isAdding ? (
-        <div className="bg-white rounded-2xl p-6 border-2 border-dashed border-gray-300 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex justify-between w-full mb-2">
-            <h3 className="font-semibold text-gray-700">Add New Item</h3>
-            <button onClick={() => setIsAdding(false)} className="text-gray-400 hover:text-gray-600">
-              <X size={20} />
-            </button>
-          </div>
-          
-          <div className="flex gap-4 w-full">
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-1 flex flex-col items-center gap-2 py-8 bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 transition-colors"
-            >
-              <Camera size={32} />
-              <span className="text-sm font-medium">Camera</span>
-            </button>
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-1 flex flex-col items-center gap-2 py-8 bg-gray-50 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors"
-            >
-              <ImageIcon size={32} />
-              <span className="text-sm font-medium">Gallery</span>
-            </button>
-          </div>
-          
-          <div className="w-full pt-2 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-indigo-600">
-              <Wand2 size={16} />
-              <span className="text-xs font-bold uppercase tracking-wider">AI Features</span>
-            </div>
-            <button 
-              onClick={() => setUseAI(!useAI)}
-              className={`w-12 h-6 rounded-full transition-colors relative ${useAI ? 'bg-indigo-600' : 'bg-gray-300'}`}
-            >
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${useAI ? 'translate-x-7' : 'translate-x-1'}`} />
-            </button>
-          </div>
-          
-          <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
         </div>
-      ) : (
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="w-full py-4 bg-white border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-2 text-gray-500 hover:border-indigo-300 hover:text-indigo-500 transition-all active:scale-95"
-        >
-          <Plus size={20} />
-          <span className="font-medium">Add Clothing Item</span>
-        </button>
-      )}
-
-      {loading && (
-        <div className="flex flex-col items-center gap-3 py-10">
-          <Loader2 className="animate-spin text-indigo-600" size={32} />
-          <p className="text-sm text-gray-500 font-medium text-center">Processing clothing item...</p>
+        
+        {/* Category Pills */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3">
+          <Pill active={selectedCategory === 'All'} onClick={() => setSelectedCategory('All')}>All</Pill>
+          {categories.map(c => (
+            <Pill key={c} active={selectedCategory === c} onClick={() => setSelectedCategory(c)}>{c}</Pill>
+          ))}
         </div>
-      )}
+      </header>
 
-      <div className="grid grid-cols-2 gap-4">
-        {filteredItems.map(item => (
-          <div key={item.id} className="group relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-            <div className="relative aspect-[4/5] bg-gray-50 overflow-hidden">
-              <img src={item.image} alt={item.subcategory} className="relative w-full h-full object-contain" />
-            </div>
-            <div className="p-3 bg-white">
-              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-tighter">{item.category}</p>
-              <p className="text-sm font-semibold text-gray-800 truncate">{item.subcategory}</p>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {item.tags.slice(0, 2).map(t => (
-                  <span key={t} className="text-[8px] bg-gray-50 text-gray-400 px-1 rounded border border-gray-100">#{t}</span>
-                ))}
+      {/* Content Grid */}
+      <div className="flex-1 overflow-y-auto px-4 pb-20 no-scrollbar">
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-12 gap-3 text-indigo-600">
+            <Loader2 className="animate-spin" size={32} />
+            <span className="text-sm font-semibold">Removing background...</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          {filteredItems.map(item => (
+            <div 
+              key={item.id} 
+              onClick={() => {
+                setActiveItemId(item.id);
+                setTempImage(item.image);
+                setManualCategory(item.category);
+                setManualSubcategory(item.subcategory);
+                setManualTags(item.tags);
+                setShowManualForm(true);
+              }}
+              className="bg-white rounded-2xl p-2 shadow-sm active:scale-95 transition-transform"
+            >
+              <div className="aspect-[4/5] bg-[#F9F9F9] rounded-xl overflow-hidden mb-2">
+                <img src={item.image} className="w-full h-full object-contain" alt={item.subcategory} />
+              </div>
+              <div className="px-1">
+                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wide leading-none mb-1">{item.category}</p>
+                <p className="text-xs font-semibold text-black truncate">{item.subcategory}</p>
               </div>
             </div>
-            <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button 
-                onClick={(e) => { e.stopPropagation(); startEdit(item); }}
-                className="p-2 bg-white/80 backdrop-blur-sm text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors border border-indigo-100"
-              >
-                <Edit2 size={14} />
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-                className="p-2 bg-red-50/80 backdrop-blur-sm text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors border border-red-100"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        
         {filteredItems.length === 0 && !loading && (
-          <div className="col-span-2 text-center py-20">
-            <Shirt size={48} className="mx-auto text-gray-200 mb-4" />
-            <p className="text-gray-400 font-medium">Your closet is empty.</p>
+          <div className="text-center py-20">
+            <Shirt size={48} className="mx-auto text-[#C7C7CC] mb-4" />
+            <p className="text-[#8E8E93] font-semibold">Your closet is empty</p>
           </div>
         )}
       </div>
+
+      {/* iOS Action Sheet for Adding */}
+      {isAdding && (
+        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-end">
+          <div className="w-full bg-white rounded-t-[20px] pb-safe animate-ios-sheet px-5 pt-2">
+            <div className="w-10 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
+            <h2 className="text-xl font-bold mb-6">Add New Item</h2>
+            
+            <div className="flex flex-col gap-3 mb-8">
+              <ActionButton 
+                onClick={() => fileInputRef.current?.click()} 
+                icon={<Camera className="text-indigo-600" />} 
+                title="Take Photo" 
+              />
+              <ActionButton 
+                onClick={() => fileInputRef.current?.click()} 
+                icon={<ImageIcon className="text-indigo-600" />} 
+                title="Choose from Gallery" 
+              />
+            </div>
+            
+            <div className="flex items-center justify-between bg-[#F2F2F7] p-4 rounded-xl mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
+                  <Wand2 size={18} />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">AI Auto-Crop</p>
+                  <p className="text-[10px] text-[#8E8E93]">Removes background automatically</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setUseAI(!useAI)}
+                className={`w-12 h-6 rounded-full transition-colors relative ${useAI ? 'bg-indigo-600' : 'bg-[#D1D1D6]'}`}
+              >
+                <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${useAI ? 'translate-x-6.5' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            
+            <button onClick={() => setIsAdding(false)} className="w-full py-4 text-indigo-600 font-bold text-lg border-t border-gray-100">Cancel</button>
+          </div>
+          <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
+        </div>
+      )}
+
+      {/* iOS Edit Modal */}
+      {showManualForm && tempImage && (
+        <div className="fixed inset-0 z-[110] bg-white pt-safe flex flex-col">
+          <header className="px-5 py-3 flex justify-between items-center border-b border-gray-100">
+            <button onClick={resetState} className="text-indigo-600 font-medium">Cancel</button>
+            <h3 className="font-bold">{activeItemId ? 'Edit Item' : 'Details'}</h3>
+            <button onClick={handleSave} className="text-indigo-600 font-bold">Save</button>
+          </header>
+          
+          <div className="flex-1 overflow-y-auto px-5 py-6 space-y-8">
+            <div className="relative w-48 aspect-[4/5] mx-auto bg-[#F9F9F9] rounded-2xl overflow-hidden shadow-inner">
+              <img src={tempImage} className="w-full h-full object-contain" alt="item" />
+              <button 
+                onClick={() => setEditingImage(tempImage)}
+                className="absolute bottom-2 right-2 bg-white/80 backdrop-blur p-2 rounded-lg text-indigo-600 shadow-sm flex items-center gap-1.5 text-[10px] font-bold"
+              >
+                <Eraser size={12} /> REFINE
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-[#F2F2F7] rounded-xl overflow-hidden">
+                <div className="px-4 py-3 flex justify-between items-center border-b border-gray-200">
+                  <span className="text-sm font-medium">Category</span>
+                  <select 
+                    value={manualCategory}
+                    onChange={(e) => setManualCategory(e.target.value as Category)}
+                    className="bg-transparent text-sm font-semibold text-indigo-600 outline-none appearance-none text-right"
+                  >
+                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="px-4 py-3 flex items-center">
+                  <span className="text-sm font-medium w-24">Name</span>
+                  <input 
+                    type="text"
+                    value={manualSubcategory}
+                    onChange={(e) => setManualSubcategory(e.target.value)}
+                    placeholder="White Tee, Blue Jeans..."
+                    className="flex-1 bg-transparent text-sm font-semibold text-right outline-none placeholder:text-[#C7C7CC]"
+                  />
+                </div>
+              </div>
+
+              {activeItemId && (
+                <button 
+                  onClick={() => {
+                    if (confirm('Delete this item permanently?')) {
+                      db.deleteItem(activeItemId);
+                      onRefresh();
+                      resetState();
+                    }
+                  }}
+                  className="w-full py-4 bg-white text-red-500 font-bold rounded-xl border border-red-100 active:bg-red-50"
+                >
+                  Delete Item
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+const Pill: React.FC<{ active: boolean; children: React.ReactNode; onClick: () => void }> = ({ active, children, onClick }) => (
+  <button 
+    onClick={onClick}
+    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${active ? 'bg-black text-white' : 'bg-white text-black shadow-sm'}`}
+  >
+    {children}
+  </button>
+);
+
+const ActionButton: React.FC<{ onClick: () => void; icon: React.ReactNode; title: string }> = ({ onClick, icon, title }) => (
+  <button 
+    onClick={onClick}
+    className="flex items-center gap-4 bg-[#F2F2F7] p-4 rounded-xl active:bg-[#E5E5EA] transition-colors"
+  >
+    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">{icon}</div>
+    <span className="font-semibold text-base flex-1 text-left">{title}</span>
+    <ChevronRight size={20} className="text-[#C7C7CC]" />
+  </button>
+);
 
 export default WardrobeView;

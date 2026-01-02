@@ -2,7 +2,7 @@
 import React from 'react';
 import { Outfit } from '../types';
 import { db } from '../db';
-import { Calendar, Trash2, Edit2, Play } from 'lucide-react';
+import { Calendar, Trash2, Edit2, ChevronRight } from 'lucide-react';
 
 interface LibraryViewProps {
   outfits: Outfit[];
@@ -20,71 +20,47 @@ const LibraryView: React.FC<LibraryViewProps> = ({ outfits, onEdit, onRefresh })
   };
 
   return (
-    <div className="p-4 flex flex-col gap-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-bold text-gray-800">Your Outfits</h2>
-        <span className="text-xs font-medium text-gray-400">{outfits.length} saved</span>
-      </div>
+    <div className="h-full flex flex-col bg-[#F2F2F7]">
+      <header className="px-5 pt-safe bg-[#F2F2F7] pb-4">
+        <h1 className="text-3xl font-bold tracking-tight text-black py-4">Library</h1>
+      </header>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="flex-1 overflow-y-auto px-5 pb-24 space-y-4 no-scrollbar">
         {outfits.map(outfit => (
           <div 
             key={outfit.id} 
             onClick={() => onEdit(outfit)}
-            className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
+            className="bg-white rounded-2xl shadow-sm flex overflow-hidden active:scale-95 transition-transform"
           >
-            <div className="flex">
-              {/* Simple Multi-item Preview */}
-              <div className="w-32 h-32 bg-indigo-50 grid grid-cols-2 gap-0.5 p-0.5 shrink-0 overflow-hidden">
-                {outfit.items.slice(0, 4).map((item, idx) => {
-                  const clothing = db.getItems().find(i => i.id === item.clothingId);
-                  return clothing ? (
-                    <img key={idx} src={clothing.image} className="w-full h-full object-cover" alt="preview" />
-                  ) : <div key={idx} className="bg-gray-100" />;
-                })}
-                {outfit.items.length === 0 && (
-                  <div className="col-span-2 row-span-2 flex items-center justify-center text-indigo-200">
-                    <Calendar size={32} />
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4 flex flex-col justify-between flex-1">
-                <div>
-                  <h3 className="font-bold text-gray-800 text-lg mb-1">{outfit.name}</h3>
-                  <p className="text-xs text-gray-400 flex items-center gap-1">
-                    <Calendar size={12} /> {new Date(outfit.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-
-                <div className="flex gap-2 mt-2">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onEdit(outfit); }}
-                    className="flex-1 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-bold flex items-center justify-center gap-1 hover:bg-gray-100"
-                  >
-                    <Edit2 size={12} /> Edit
-                  </button>
-                  <button 
-                    onClick={(e) => handleDelete(e, outfit.id)}
-                    className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
+            <div className="w-24 h-24 bg-[#F9F9F9] grid grid-cols-2 p-1 gap-0.5 shrink-0">
+              {outfit.items.slice(0, 4).map((item, idx) => {
+                const clothing = db.getItems().find(i => i.id === item.clothingId);
+                return clothing ? (
+                  <img key={idx} src={clothing.image} className="w-full h-full object-cover rounded-[2px]" alt="pv" />
+                ) : <div key={idx} className="bg-gray-100 rounded-[2px]" />;
+              })}
             </div>
             
-            <div className="absolute top-2 right-2 p-2 bg-indigo-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-              <Play size={16} fill="white" />
+            <div className="flex-1 p-3 flex flex-col justify-center">
+              <h3 className="font-bold text-black text-sm mb-0.5">{outfit.name}</h3>
+              <p className="text-[10px] text-[#8E8E93] font-medium">
+                {new Date(outfit.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+            </div>
+
+            <div className="flex items-center px-4">
+              <ChevronRight size={18} className="text-[#C7C7CC]" />
             </div>
           </div>
         ))}
 
         {outfits.length === 0 && (
-          <div className="text-center py-24 px-6 border-2 border-dashed border-gray-200 rounded-3xl">
-            <Calendar size={48} className="mx-auto text-gray-200 mb-4" />
-            <p className="text-gray-400 font-bold text-lg">No outfits saved yet.</p>
-            <p className="text-gray-400 text-sm mt-1">Start mixing and matching in the Canvas tab!</p>
+          <div className="text-center py-20 px-8">
+            <div className="w-20 h-20 bg-white rounded-3xl shadow-sm flex items-center justify-center mx-auto mb-6">
+              <Calendar size={32} className="text-[#C7C7CC]" />
+            </div>
+            <p className="text-lg font-bold text-black mb-2">No Saved Outfits</p>
+            <p className="text-sm text-[#8E8E93]">Your collection will appear here once you save a creation from the Studio.</p>
           </div>
         )}
       </div>

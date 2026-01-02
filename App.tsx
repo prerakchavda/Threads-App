@@ -6,7 +6,7 @@ import WardrobeView from './views/WardrobeView';
 import CanvasView from './views/CanvasView';
 import LibraryView from './views/LibraryView';
 import SplashScreen from './components/SplashScreen';
-import { LayoutGrid, Shirt, Library, Plus } from 'lucide-react';
+import { Grid, Shirt, Library, Plus } from 'lucide-react';
 
 const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -18,37 +18,16 @@ const App: React.FC = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Step 1: Initialize local database & load items
         const loadedItems = db.getItems();
         const loadedOutfits = db.getOutfits();
-
-        // Step 2: Data Validation & Integrity Check
-        // Cleanup outfits that might reference non-existent items
-        const validItemIds = new Set(loadedItems.map(i => i.id));
-        const validatedOutfits = loadedOutfits.map(outfit => ({
-          ...outfit,
-          items: outfit.items.filter(item => validItemIds.has(item.clothingId))
-        }));
-
-        // Set memory-cached items for fast rendering
         setItems(loadedItems);
-        setOutfits(validatedOutfits);
-
-        // Step 3: Transition smoothly from Splash Screen
-        // Using requestAnimationFrame to ensure splash is painted at least once
-        requestAnimationFrame(() => {
-          // Minimal moment to allow the splash to be perceived and transition smoothly
-          setTimeout(() => {
-            setIsInitializing(false);
-          }, 600);
-        });
+        setOutfits(loadedOutfits);
+        
+        setTimeout(() => setIsInitializing(false), 800);
       } catch (error) {
-        console.error("Critical initialization failure:", error);
-        // Fail-safe to allow users to interact with whatever data remains
         setIsInitializing(false);
       }
     };
-
     initializeApp();
   }, []);
 
@@ -62,30 +41,12 @@ const App: React.FC = () => {
     setCurrentView('Canvas');
   };
 
-  const startNewOutfit = () => {
-    setActiveOutfit(null);
-    setCurrentView('Canvas');
-  };
-
-  if (isInitializing) {
-    return <SplashScreen />;
-  }
+  if (isInitializing) return <SplashScreen />;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 max-w-md mx-auto border-x border-gray-200 shadow-2xl relative animate-in fade-in duration-700">
-      {/* Header */}
-      <header className="p-4 bg-white border-b border-gray-100 flex justify-between items-center shrink-0">
-        <h1 className="text-xl font-bold text-gray-800 tracking-tight">Closet Canvas</h1>
-        <button 
-          onClick={startNewOutfit}
-          className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition-colors shadow-sm active:scale-95"
-        >
-          <Plus size={20} />
-        </button>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto relative no-scrollbar">
+    <div className="flex flex-col h-screen bg-[#F2F2F7] max-w-lg mx-auto overflow-hidden relative font-sans">
+      {/* View Content */}
+      <main className="flex-1 overflow-hidden relative">
         {currentView === 'Wardrobe' && (
           <WardrobeView items={items} onRefresh={refreshData} />
         )}
@@ -104,32 +65,49 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Navigation Bar */}
-      <nav className="bg-white border-t border-gray-100 flex justify-around p-3 pb-6 shrink-0 shadow-lg">
-        <button 
-          onClick={() => setCurrentView('Wardrobe')}
-          className={`flex flex-col items-center gap-1 transition-colors ${currentView === 'Wardrobe' ? 'text-indigo-600' : 'text-gray-400'}`}
-        >
-          <LayoutGrid size={24} />
-          <span className="text-[10px] font-medium uppercase tracking-wider">Closet</span>
-        </button>
-        <button 
-          onClick={() => setCurrentView('Canvas')}
-          className={`flex flex-col items-center gap-1 transition-colors ${currentView === 'Canvas' ? 'text-indigo-600' : 'text-gray-400'}`}
-        >
-          <Shirt size={24} />
-          <span className="text-[10px] font-medium uppercase tracking-wider">Canvas</span>
-        </button>
-        <button 
-          onClick={() => setCurrentView('Library')}
-          className={`flex flex-col items-center gap-1 transition-colors ${currentView === 'Library' ? 'text-indigo-600' : 'text-gray-400'}`}
-        >
-          <Library size={24} />
-          <span className="text-[10px] font-medium uppercase tracking-wider">Library</span>
-        </button>
+      {/* iOS Tab Bar */}
+      <nav className="ios-blur border-t border-black/5 flex justify-around px-2 pt-2 pb-safe z-[90] shrink-0">
+        <TabButton 
+          active={currentView === 'Wardrobe'} 
+          onClick={() => setCurrentView('Wardrobe')} 
+          icon={<Grid size={26} strokeWidth={currentView === 'Wardrobe' ? 2.5 : 2} />} 
+          label="Closet" 
+        />
+        <TabButton 
+          active={currentView === 'Canvas'} 
+          onClick={() => {
+            setActiveOutfit(null);
+            setCurrentView('Canvas');
+          }} 
+          icon={<Shirt size={26} strokeWidth={currentView === 'Canvas' ? 2.5 : 2} />} 
+          label="Studio" 
+        />
+        <TabButton 
+          active={currentView === 'Library'} 
+          onClick={() => setCurrentView('Library')} 
+          icon={<Library size={26} strokeWidth={currentView === 'Library' ? 2.5 : 2} />} 
+          label="Library" 
+        />
       </nav>
     </div>
   );
 };
+
+interface TabButtonProps {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}
+
+const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, label }) => (
+  <button 
+    onClick={onClick}
+    className={`flex flex-col items-center gap-0.5 pt-1 px-4 transition-all active:opacity-50 ${active ? 'text-indigo-600' : 'text-[#8E8E93]'}`}
+  >
+    <div className="h-7 flex items-center">{icon}</div>
+    <span className="text-[10px] font-semibold tracking-tight leading-none">{label}</span>
+  </button>
+);
 
 export default App;
