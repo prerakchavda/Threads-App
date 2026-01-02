@@ -1,88 +1,55 @@
-# 👗 Closet Canvas
-### **AI-Powered Visual Wardrobe Manager & Outfit Studio**
+# Closet Canvas
+## AI-Powered Wardrobe Management and Outfit Composition Studio
 
-Closet Canvas is a high-fidelity, offline-first mobile web application designed to help you rediscover your wardrobe. Using Google's Gemini AI, the app transforms messy mirror selfies into a professional digital catalog, allowing you to compose, randomize, and save outfits with a precision "Xcode-style" interface.
-
----
-
-## ✨ Key Features
-
-### 🤖 **AI-Driven Digitization**
-*   **Instant Background Removal**: Leverages `gemini-2.5-flash-image` to precisely extract clothing items from photos, preserving textures and fine edges.
-*   **Smart Categorization**: Automatically identifies categories (Tops, Bottoms, etc.) and suggests tags using `gemini-3-flash-preview`.
-
-### 🎨 **Studio Canvas**
-*   **Visual Outfit Builder**: A drag-and-drop workspace where you can layer, scale, and rotate your clothes to visualize a look before putting it on.
-*   **Smart Randomizer**: Generate "Magic Outfits" with one tap. Our algorithm ensures core pieces (Top, Bottom, Shoes) are centered while accessories are placed in non-overlapping "peripheral slots."
-
-### 🛠️ **Precision Image Refiner**
-*   **Granular Erase/Restore**: A professional-grade manual tool to clean up AI extractions.
-*   **Pan & Zoom**: Zoom up to 500% to ensure every pixel is perfect.
-*   **Adjustable Hardness**: Control brush softness for realistic blending.
-
-### 📱 **Native iOS Experience**
-*   **Apple HIG Design**: Glassmorphism tab bars, Detent Sheets, and San Francisco typography.
-*   **Privacy First**: All wardrobe data and images are stored locally on your device via `localStorage`.
+Closet Canvas is a high-fidelity, offline-first mobile web application designed to digitize and optimize personal wardrobes. Utilizing Google’s Gemini AI, the platform transforms user-generated photography into a structured digital catalog, offering a precision interface for outfit composition, algorithmic randomization, and wardrobe analytics.
 
 ---
 
-## 📸 App Preview
+## Core Features
 
-| **Closet Catalog** | **Outfit Studio** | **Manual Refiner** |
-|:---:|:---:|:---:|
-| <img src="https://via.placeholder.com/300x600.png?text=iOS+Wardrobe+Grid" width="200" /> | <img src="https://via.placeholder.com/300x600.png?text=Canvas+Outfit+Builder" width="200" /> | <img src="https://via.placeholder.com/300x600.png?text=Precision+Refiner+Tools" width="200" /> |
-| *Browse by Category* | *Drag & Drop Layout* | *Pixel-Perfect Editing* |
+### AI-Driven Digitization
+* **Automated Background Removal**: Utilizes `gemini-2.5-flash-image` to extract clothing items from images with high fidelity, preserving textures and complex edge detail.
+* **Intelligent Categorization**: Automatically determines item categories (e.g., Outerwear, Formal, Footwear) and generates descriptive metadata using `gemini-3-flash-preview`.
 
----
+### Studio Canvas
+* **Composition Workspace**: A specialized drag-and-drop environment allowing users to layer, scale, and rotate digitized assets to visualize ensembles.
+* **Algorithmic Randomization**: Generates optimized outfit suggestions through a logic-based engine that prioritizes core items (Top, Bottom, Shoes) while positioning accessories in non-overlapping peripheral slots.
 
-## 🚀 Technical Stack
+### Precision Image Refinement
+* **Manual Extraction Tools**: Professional-grade erase and restore functionality for post-AI cleanup.
+* **Dynamic Viewport**: Supports up to 500% magnification for pixel-perfect edge refinement.
+* **Advanced Brush Controls**: Adjustable hardness and size parameters for seamless asset blending.
 
--   **Framework**: [React 19](https://react.dev/)
--   **AI Engine**: [Google Gemini API](https://ai.google.dev/)
-    -   `gemini-3-flash-preview` (Logic & Data Analysis)
-    -   `gemini-2.5-flash-image` (Visual Processing)
--   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
--   **Icons**: [Lucide React](https://lucide.dev/)
--   **Persistence**: `localStorage` (Offline-Ready)
-
----
-
-## 🛠️ Setup & Installation
-
-1.  **Clone the Repository**
-    ```bash
-    git clone https://github.com/your-username/closet-canvas.git
-    cd closet-canvas
-    ```
-
-2.  **Environment Configuration**
-    Ensure you have an API key from [Google AI Studio](https://aistudio.google.com/).
-    ```bash
-    # Set your API Key in your environment variables
-    export API_KEY='your_gemini_api_key_here'
-    ```
-
-3.  **Run the App**
-    Since the project uses ES6 modules directly:
-    ```bash
-    # Simply serve the root directory
-    npx serve .
-    ```
+### Architecture and User Experience
+* **Design Standards**: Implements Apple Human Interface Guidelines (HIG), featuring glassmorphism effects, detent sheets, and San Francisco typography.
+* **Privacy-Centric Data Model**: All wardrobe data and visual assets are persisted locally via `localStorage`, ensuring full offline functionality and data sovereignty.
 
 ---
 
-## 🧠 How the AI Works
+## Application Preview
 
-### **Automatic Background Removal**
-When you upload a photo, the app sends a request to `gemini-2.5-flash-image` with a specialized prompt:
-> *"Extract the clothing item from this image with extreme precision... Remove the background entirely and replace it with solid black."*
-
-The app then converts this into a transparent PNG by processing the black pixels as alpha channels, giving you a clean digital item for your canvas.
-
-### **Metadata Intelligence**
-Using `gemini-3-flash-preview` with a defined JSON Schema, the app instantly understands if you uploaded a "Denim Jacket" or "Leather Boots," tagging colors and styles automatically.
+| Wardrobe Catalog | Outfit Studio | Manual Refiner |
+| :--- | :--- | :--- |
+| ![Closet Catalog View](https://via.placeholder.com/300x600.png?text=Wardrobe+Grid+Interface) | ![Outfit Builder View](https://via.placeholder.com/300x600.png?text=Canvas+Composition+Interface) | ![Image Refiner View](https://via.placeholder.com/300x600.png?text=Extraction+Tools+Interface) |
+| *Categorized Grid View* | *Asset Manipulation* | *Pixel-Level Refinement* |
 
 ---
 
-## 📄 License
-MIT License - Created with ❤️ for organized fashion.
+## Technical Specifications
+
+* **Frontend Framework**: [React 19](https://react.dev/)
+* **AI Integration**: [Google Gemini API](https://ai.google.dev/)
+    * `gemini-3-flash-preview` (Logic and Schema-driven Data Analysis)
+    * `gemini-2.5-flash-image` (Computer Vision and Visual Processing)
+* **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+* **Iconography**: [Lucide React](https://lucide.dev/)
+* **Data Persistence**: Browser-based `localStorage` (Offline-First)
+
+---
+
+## Installation and Deployment
+
+### 1. Clone the Repository
+```bash
+git clone [https://github.com/your-username/closet-canvas.git](https://github.com/your-username/closet-canvas.git)
+cd closet-canvas
